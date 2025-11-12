@@ -1,7 +1,7 @@
 scipy==1.16.3
 pandas==2.3.3
-tensorflow==2.18.0
 torch==2.9.0
+scikit-learn==1.7.2
 pybdm==0.1.0
 matplotlib==3.10.7
 statsmodels==0.14.5
