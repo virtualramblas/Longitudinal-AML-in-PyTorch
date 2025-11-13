@@ -65,9 +65,6 @@ def train_transformer_and_extract_importance(sequences, labels, patient,
     if labels is None or labels.shape[0] != sequences.shape[0]:
         labels = np.random.randint(0, 3, size=sequences.shape[0])  # Placeholder for actual labels for each gene
 
-    # Convert numpy arrays to PyTorch tensors and move to device
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     X_tensor = torch.tensor(sequences, dtype=torch.float32).to(device)
     y_tensor = torch.tensor(labels, dtype=torch.long).to(device)
 
@@ -93,7 +90,7 @@ def train_transformer_and_extract_importance(sequences, labels, patient,
     # Build PyTorch Transformer model
     embed_dim = X_train.shape[-1]  # Features dimension
     num_heads = 1
-    num_classes = 3 # DX, REL, REM
+    num_classes = X_train.shape[-2] # DX, REL, REM
     epochs = 50
 
     model = PyTorchTransformerModel(embed_dim=embed_dim, num_heads=num_heads, num_classes=num_classes).to(device)
@@ -185,7 +182,7 @@ def train_transformer_and_extract_importance(sequences, labels, patient,
 
     return model, sequences
 
-#TODO Implement function to rank features by importance using the trained model
+#TODO Implement a function to rank features by importance using the trained model
 
 def main():
     parser = argparse.ArgumentParser(description="Training a Transformer model for feature importance analysis.")
@@ -195,7 +192,7 @@ def main():
     args = parser.parse_args()
 
     device = "cpu"
-    if torch.cuda.is_available() :
+    if torch.cuda.is_available():
         device = "gpu"
     else:
         if torch.mps.is_available():
@@ -218,6 +215,6 @@ def main():
         sequences, labels = process_single_patient_data(processed_matrices_dir, patient, files)
         model, sequences = train_transformer_and_extract_importance(sequences, labels, patient, 
                                                                             output_dir, device)
-
+        
 if __name__ == '__main__':
     main()
