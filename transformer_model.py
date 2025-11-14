@@ -16,7 +16,6 @@ class PyTorchMultiHeadAttention(nn.Module):
         # Permute the output back to (batch_size, sequence_length, features)
         attn_output_original_dim = attn_output.permute(1, 0, 2)
 
-        #return attn_output_original_dim
         if return_attention_weights:
             return attn_output_original_dim, attn_output_weights
         else:
@@ -67,7 +66,6 @@ class PyTorchTransformerModel(nn.Module):
         self.global_average_pooling = PyTorchGlobalAveragePooling1D()
         self.classification_head = nn.Linear(embed_dim, num_classes)
 
-    #def forward(self, inputs):
     def forward(self, inputs, return_attention_weights=False):
         # Multi-Head Attention Layer
         if return_attention_weights:
@@ -94,7 +92,6 @@ class PyTorchTransformerModel(nn.Module):
         # Apply softmax for classification probabilities
         outputs = torch.softmax(outputs, dim=-1)
 
-        #return outputs
         if return_attention_weights:
             return outputs, attn_weights
         else:
