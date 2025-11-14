@@ -32,9 +32,9 @@ def process_single_patient_data(processed_matrices_dir, patient, files):
     sequences = np.stack([dx_df.mean(axis=1).values, rel_df.mean(axis=1).values, rem_df.mean(axis=1).values], axis=1)
     labels = np.array([0, 1, 2])  # DX=0, REL=1, REM=2
 
-    return sequences, labels
+    return sequences, labels, dx_df.index.to_list()
 
-def train_transformer_and_extract_importance(sequences, labels, patient,
+def train_transformer(sequences, labels, patient,
                                                      output_dir='results/transformer_analysis',
                                                      device='cpu'):
     # Ensure output directory exists
@@ -59,9 +59,6 @@ def train_transformer_and_extract_importance(sequences, labels, patient,
         sequences = sequences.reshape((sequences.shape[0], sequences.shape[1], 1))
 
     # Generate dummy labels matching samples (one per row/gene) if actual labels are not provided or are problematic
-    # The previous cell generates `labels = np.array([0, 1, 2])` for 3 timepoints, not for each gene.
-    # The Keras `train_transformer_and_extract_importance` function used `np.random.randint(0, 3, size=sequences.shape[0])`
-    # so we will stick to that to ensure consistency in dummy label generation for genes.
     if labels is None or labels.shape[0] != sequences.shape[0]:
         labels = np.random.randint(0, 3, size=sequences.shape[0])  # Placeholder for actual labels for each gene
 
@@ -182,7 +179,21 @@ def train_transformer_and_extract_importance(sequences, labels, patient,
 
     return model, sequences
 
-#TODO Implement a function to rank features by importance using the trained model
+def rank_features_by_importance(model, sequences, gene_names):
+    model.eval()
+    with torch.no_grad(): 
+        attention_layer_for_inference = model.multi_head_attention
+        outputs, attention_weights = attention_layer_for_inference(sequences, return_attention_weights=True)
+        feature_importance_tensor = torch.mean(torch.abs(outputs), dim=(1, 2))
+        feature_importance = feature_importance_tensor.cpu().numpy()
+
+    # Rank features by importance
+    feature_ranking = pd.DataFrame({
+        "Gene": gene_names,
+        "Importance": feature_importance
+    }).sort_values(by="Importance", ascending=False)
+
+    return feature_ranking
 
 def main():
     parser = argparse.ArgumentParser(description="Training a Transformer model for feature importance analysis.")
@@ -212,9 +223,19 @@ def main():
 
     # Run the analysis
     for patient, files in file_groups.items():
-        sequences, labels = process_single_patient_data(processed_matrices_dir, patient, files)
-        model, sequences = train_transformer_and_extract_importance(sequences, labels, patient, 
-                                                                            output_dir, device)
+        sequences, labels, gene_names = process_single_patient_data(processed_matrices_dir, patient, files)
+        model, sequences = train_transformer(sequences, labels, patient, 
+                                                output_dir, device)
         
+        sequences_to_torch = torch.from_numpy(sequences)
+        sequences_to_torch_fp32 = sequences_to_torch.to(dtype=torch.float32, device=device)
+        feature_ranking = rank_features_by_importance(model, sequences_to_torch_fp32, gene_names)
+        
+        # Save top 100 features
+        top_100_features = feature_ranking.head(100)
+        top_100_features.to_csv(os.path.join(output_dir, f"{patient}_top_100_features.csv"), index=False)
+
+        print(f"Completed {patient}")
+
 if __name__ == '__main__':
     main()

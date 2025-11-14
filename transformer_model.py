@@ -6,17 +6,21 @@ class PyTorchMultiHeadAttention(nn.Module):
         super(PyTorchMultiHeadAttention, self).__init__()
         self.multihead_attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=False) # Keras input (batch, seq, features), PyTorch (seq, batch, features) by default
 
-    def forward(self, x):
+    def forward(self, x, return_attention_weights=False):
         x_permuted = x.permute(1, 0, 2)
 
         # Pass the permuted input to nn.MultiheadAttention
         # query, key, value are all the same for self-attention
-        attn_output, _ = self.multihead_attn(query=x_permuted, key=x_permuted, value=x_permuted)
+        attn_output, attn_output_weights = self.multihead_attn(query=x_permuted, key=x_permuted, value=x_permuted, need_weights=return_attention_weights)
 
         # Permute the output back to (batch_size, sequence_length, features)
         attn_output_original_dim = attn_output.permute(1, 0, 2)
 
-        return attn_output_original_dim
+        #return attn_output_original_dim
+        if return_attention_weights:
+            return attn_output_original_dim, attn_output_weights
+        else:
+            return attn_output_original_dim
     
 class PyTorchFeedForwardNetwork(nn.Module):
     def __init__(self, embed_dim):
@@ -63,9 +67,13 @@ class PyTorchTransformerModel(nn.Module):
         self.global_average_pooling = PyTorchGlobalAveragePooling1D()
         self.classification_head = nn.Linear(embed_dim, num_classes)
 
-    def forward(self, inputs):
+    #def forward(self, inputs):
+    def forward(self, inputs, return_attention_weights=False):
         # Multi-Head Attention Layer
-        attn_output = self.multi_head_attention(inputs)
+        if return_attention_weights:
+            attn_output, attn_weights = self.multi_head_attention(inputs, return_attention_weights=True)
+        else:
+            attn_output = self.multi_head_attention(inputs)
 
         # LayerNormalization with residual connection
         attn_output = self.dropout1(attn_output)
@@ -86,5 +94,9 @@ class PyTorchTransformerModel(nn.Module):
         # Apply softmax for classification probabilities
         outputs = torch.softmax(outputs, dim=-1)
 
-        return outputs
+        #return outputs
+        if return_attention_weights:
+            return outputs, attn_weights
+        else:
+            return outputs
     
