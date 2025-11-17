@@ -195,13 +195,7 @@ def rank_features_by_importance(model, sequences, gene_names):
 
     return feature_ranking
 
-def main():
-    parser = argparse.ArgumentParser(description="Training a Transformer model for feature importance analysis.")
-
-    parser.add_argument("--raw_data_dir", type=str, default=".", help="The root directory of the raw patient data.")
-
-    args = parser.parse_args()
-
+def train_model_and_rank_features(raw_data_dir):
     device = "cpu"
     if torch.cuda.is_available():
         device = "gpu"
@@ -210,7 +204,7 @@ def main():
             device = "mps"
 
     # Organize files by patient
-    processed_matrices_dir = args.raw_data_dir + "/processed_matrices_csv"
+    processed_matrices_dir = raw_data_dir + "/processed_matrices_csv"
     output_dir = "results/transformer_analysis"
     os.makedirs(output_dir, exist_ok=True)
     file_groups = {}
@@ -238,4 +232,9 @@ def main():
         print(f"Completed {patient}")
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Training a Transformer model for feature importance analysis.")
+    parser.add_argument("--raw_data_dir", type=str, default=".", help="The root directory of the raw patient data.")
+
+    args = parser.parse_args()
+
+    train_model_and_rank_features(args.raw_data_dir)
