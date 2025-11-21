@@ -17,7 +17,7 @@ The bulk Pediatric Leukemia Transcriptome raw data can be downloaded from [here]
 The Transformer model defined in ```transformer_model.py``` can be trained and used for ranking the top 100 genes by importance executing the ```transformer_training.py``` script:  
 ```
 python transformer_training.py -h
-usage: transformer_training.py [-h] [--raw_data_dir RAW_DATA_DIR]
+usage: transformer_training.py [-h] [--raw_data_dir RAW_DATA_DIR] [--output_root_dir OUTPUT_ROOT_DIR]
 
 Training a Transformer model for feature importance analysis.
 
@@ -25,7 +25,9 @@ options:
   -h, --help            show this help message and exit
   --raw_data_dir RAW_DATA_DIR
                         The root directory of the raw patient data.
+  --output_root_dir OUTPUT_ROOT_DIR
+                        The root directory where to store training metrics and results.
 ``` 
-The script trains the model on each single patient data present in the input directory and then for each one ranks the top 100 genes by importance. Results are saved to files in the ```results/transformer_analysis``` directory.  
+The script trains the model on each single patient data present in the input directory and then for each one ranks the top 100 genes by importance. Results are saved to files in the ```transformer_analysis``` sub-directory of the indicated output directory.  
 ## Differences with the TensorFlow Implementation
-The Transformer model implementation in this repository mirrors the proposed TensorFlow implementation and the specification in the paper, and, same as for the original model, feature importance is derived by the output of the attention layer. The main difference is the number of heads of the attention layer, which has been reduced to 1 (single-head attention). This was a necessary change to satisfy a mathematical requirement of the PyTorch's ```torch.nn.MultiheadAttention``` class (the embedding dimension must be divisible by the number of heads). In this case, the embedding dimension is 1, hence the number of attention heads must be 1. The impact on performance is minimal, as each feature at each timestep is a single scalar value. With such low-dimensional embedding, there's inherently limited information for multiple attention heads to extract distinct features from. Even if we try to use more heads, they would essentially be operating on the same very simple 1-dimensional input, so the benefit of having multiple heads diminishes significantly. After training the PyTorch model on the available patient data and then using it to rank features by importance, the results for each patient matched those from the original TensorFlow model (exact same ranking), even if presenting slightly lower scores. 
+The Transformer model implementation in this repository mirrors the proposed TensorFlow implementation and the specification in the paper, and, same as for the original model, feature importance is derived by the output of the attention layer. The main difference is the number of heads of the attention layer, which has been reduced to 1 (single-head attention). This was a necessary change to satisfy a mathematical requirement of the PyTorch's ```torch.nn.MultiheadAttention``` class (the embedding dimension must be divisible by the number of heads). In this case, the embedding dimension is 1, hence the number of attention heads must be 1. The impact on performance is minimal, as each feature at each timestep is a single scalar value. With such low-dimensional embedding, there's inherently limited information for multiple attention heads to extract distinct features from. Even if we try to use more heads, they would essentially be operating on the same very simple 1-dimensional input, so the benefit of having multiple heads diminishes significantly. After training the PyTorch model on the available patient data and then using it to rank features by importance, the results for each patient matched those from the original TensorFlow model (exact same ranking), even if presenting a negligible difference in the scores. 

@@ -35,8 +35,7 @@ def process_single_patient_data(processed_matrices_dir, patient, files):
     return sequences, labels, dx_df.index.to_list()
 
 def train_transformer(sequences, labels, patient,
-                                                     output_dir='results/transformer_analysis',
-                                                     device='cpu'):
+                        output_dir, device='cpu'):
     # Ensure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -195,7 +194,7 @@ def rank_features_by_importance(model, sequences, gene_names):
 
     return feature_ranking
 
-def train_model_and_rank_features(raw_data_dir):
+def train_model_and_rank_features(raw_data_dir, output_root_dir):
     device = "cpu"
     if torch.cuda.is_available():
         device = "gpu"
@@ -205,7 +204,7 @@ def train_model_and_rank_features(raw_data_dir):
 
     # Organize files by patient
     processed_matrices_dir = raw_data_dir + "/processed_matrices_csv"
-    output_dir = "results/transformer_analysis"
+    output_dir = os.path.join(output_root_dir, 'transformer_analysis')
     os.makedirs(output_dir, exist_ok=True)
     file_groups = {}
     for file in os.listdir(processed_matrices_dir):
@@ -234,7 +233,8 @@ def train_model_and_rank_features(raw_data_dir):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Training a Transformer model for feature importance analysis.")
     parser.add_argument("--raw_data_dir", type=str, default=".", help="The root directory of the raw patient data.")
+    parser.add_argument("--output_root_dir", type=str, default="./results", help="The root directory where to store training metrics and results.")
 
     args = parser.parse_args()
 
-    train_model_and_rank_features(args.raw_data_dir)
+    train_model_and_rank_features(args.raw_data_dir, args.output_root_dir)
