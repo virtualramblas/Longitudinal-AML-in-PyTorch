@@ -1,6 +1,7 @@
 import os
 import gzip
 import shutil
+import numpy as np
 import pandas as pd
 from scipy.io import mmread
 
@@ -77,3 +78,38 @@ def process_sparse_matrices(input_dir):
                 print(f"Error processing {gz_file_path}: {e}")
 
     print(f"All processed matrices have been saved to {output_dir}")
+
+def process_single_patient_data(processed_matrices_dir, patient, files):
+    """
+    Prepares a raw single patient data to be used for LSTM or Transformer training, test and validation.
+
+    Args:
+         processed_matrices_dir: The root directory where the raw data archives have been downloaded.
+         patient: The patiend id.
+         files: A dictionary for the files related to the different temporal states.
+    
+    Returns:
+        A list of sequences (samples x timepoints), the list of labels, and the list of gene names.
+    """
+    print(f"Processing {patient}...")
+
+    # Load DX, REL, REM data
+    dx_file = os.path.join(processed_matrices_dir, files.get("DX"))
+    rel_file = os.path.join(processed_matrices_dir, files.get("REL"))
+    rem_file = os.path.join(processed_matrices_dir, files.get("REM"))
+
+    dx_df = pd.read_csv(dx_file)
+    rel_df = pd.read_csv(rel_file)
+    rem_df = pd.read_csv(rem_file)
+
+    # Extract genes and samples
+    common_genes = set(dx_df["Gene"]).intersection(rel_df["Gene"]).intersection(rem_df["Gene"])
+    dx_df = dx_df[dx_df["Gene"].isin(common_genes)].set_index("Gene")
+    rel_df = rel_df[rel_df["Gene"].isin(common_genes)].set_index("Gene")
+    rem_df = rem_df[rem_df["Gene"].isin(common_genes)].set_index("Gene")
+
+    # Combine DX, REL, REM into sequences (samples x timepoints)
+    sequences = np.stack([dx_df.mean(axis=1).values, rel_df.mean(axis=1).values, rem_df.mean(axis=1).values], axis=1)
+    labels = np.array([0, 1, 2])  # DX=0, REL=1, REM=2
+
+    return sequences, labels, dx_df.index.to_list()

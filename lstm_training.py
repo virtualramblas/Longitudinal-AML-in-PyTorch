@@ -8,33 +8,10 @@ import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.preprocessing import MinMaxScaler
+from data_preprocessing import process_single_patient_data
 from lstm_model import LSTMBinaryClassifier
 
-def process_single_patient_data(processed_matrices_dir, patient, files):
-    print(f"Processing {patient}...")
-
-    # Load DX, REL, REM data
-    dx_file = os.path.join(processed_matrices_dir, files.get("DX"))
-    rel_file = os.path.join(processed_matrices_dir, files.get("REL"))
-    rem_file = os.path.join(processed_matrices_dir, files.get("REM"))
-
-    dx_df = pd.read_csv(dx_file)
-    rel_df = pd.read_csv(rel_file)
-    rem_df = pd.read_csv(rem_file)
-
-    # Extract genes and samples
-    common_genes = set(dx_df["Gene"]).intersection(rel_df["Gene"]).intersection(rem_df["Gene"])
-    dx_df = dx_df[dx_df["Gene"].isin(common_genes)].set_index("Gene")
-    rel_df = rel_df[rel_df["Gene"].isin(common_genes)].set_index("Gene")
-    rem_df = rem_df[rem_df["Gene"].isin(common_genes)].set_index("Gene")
-
-    # Combine DX, REL, REM into sequences (samples x timepoints)
-    sequences = np.stack([dx_df.mean(axis=1).values, rel_df.mean(axis=1).values, rem_df.mean(axis=1).values], axis=1)
-    labels = np.array([0, 1, 2])  # DX=0, REL=1, REM=2
-
-    return sequences, labels, dx_df.index.to_list()
-
-def train_lstm_and_extract_importance_pytorch(sequences, labels, patient, output_dir):
+def train_lstm_and_extract_importance(sequences, labels, patient, output_dir):
     # Ensure labels are of type int (if they are not already)
     labels = labels.astype(int)
 
@@ -202,7 +179,7 @@ def train_model_and_rank_features(raw_data_dir, output_root_dir):
     # Run the analysis
     for patient, files in file_groups.items():
         sequences, labels, gene_names = process_single_patient_data(processed_matrices_dir, patient, files)
-        model, sequences = train_lstm_and_extract_importance_pytorch(sequences, labels, patient, 
+        model, sequences = train_lstm_and_extract_importance(sequences, labels, patient, 
                                                 output_dir)
         
         feature_ranking = extract_feature_importance(model, gene_names, patient)

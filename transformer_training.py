@@ -8,31 +8,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from data_preprocessing import process_single_patient_data
 from transformer_model import PyTorchTransformerModel
-
-def process_single_patient_data(processed_matrices_dir, patient, files):
-    print(f"Processing {patient}...")
-
-    # Load DX, REL, REM data
-    dx_file = os.path.join(processed_matrices_dir, files.get("DX"))
-    rel_file = os.path.join(processed_matrices_dir, files.get("REL"))
-    rem_file = os.path.join(processed_matrices_dir, files.get("REM"))
-
-    dx_df = pd.read_csv(dx_file)
-    rel_df = pd.read_csv(rel_file)
-    rem_df = pd.read_csv(rem_file)
-
-    # Extract genes and samples
-    common_genes = set(dx_df["Gene"]).intersection(rel_df["Gene"]).intersection(rem_df["Gene"])
-    dx_df = dx_df[dx_df["Gene"].isin(common_genes)].set_index("Gene")
-    rel_df = rel_df[rel_df["Gene"].isin(common_genes)].set_index("Gene")
-    rem_df = rem_df[rem_df["Gene"].isin(common_genes)].set_index("Gene")
-
-    # Combine DX, REL, REM into sequences (samples x timepoints)
-    sequences = np.stack([dx_df.mean(axis=1).values, rel_df.mean(axis=1).values, rem_df.mean(axis=1).values], axis=1)
-    labels = np.array([0, 1, 2])  # DX=0, REL=1, REM=2
-
-    return sequences, labels, dx_df.index.to_list()
 
 def train_transformer(sequences, labels, patient,
                         output_dir, device='cpu'):
