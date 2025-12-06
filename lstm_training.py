@@ -9,7 +9,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.preprocessing import MinMaxScaler
 from data_preprocessing import process_single_patient_data
-from lstm_model import LSTMBinaryClassifier
+from lstm_model import LSTMModel
 
 def train_lstm_and_extract_importance(sequences, labels, patient, output_dir):
     # Ensure labels are of type int (if they are not already)
@@ -52,7 +52,7 @@ def train_lstm_and_extract_importance(sequences, labels, patient, output_dir):
     input_size = X_train.shape[2]
     hidden_size = 64
     num_classes = len(np.unique(labels)) # Dynamically determine number of classes
-    model = LSTMBinaryClassifier(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes)
+    model = LSTMModel(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes)
     criterion = nn.NLLLoss() # Since LSTMBinaryClassifier uses log_softmax
     optimizer = optim.Adam(model.parameters())
 
