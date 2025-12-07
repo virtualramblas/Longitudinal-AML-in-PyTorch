@@ -12,6 +12,18 @@ from data_preprocessing import process_single_patient_data
 from lstm_model import LSTMModel
 
 def train_lstm(sequences, labels, patient, output_dir):
+    """
+    Trains, tests and validate a LSTM model on a single patient data.
+
+    Args:
+         sequences: Combined DX, REL, REM into sequences (samples x timepoints).
+         labels: The list of labesl (for diagnosis, relapse and remission).
+         patient: The patiend id.
+         output_dir: The dictionary where to save the training metrics.
+    
+    Returns:
+        The trained model and a list of sequences (samples x timepoints).
+    """
     # Ensure labels are of type int (if they are not already)
     labels = labels.astype(int)
 
@@ -53,7 +65,7 @@ def train_lstm(sequences, labels, patient, output_dir):
     hidden_size = 64
     num_classes = len(np.unique(labels)) # Dynamically determine number of classes
     model = LSTMModel(input_size=input_size, hidden_size=hidden_size, num_classes=num_classes)
-    criterion = nn.NLLLoss() # Since LSTMBinaryClassifier uses log_softmax
+    criterion = nn.NLLLoss() # Since LSTMModel uses log_softmax
     optimizer = optim.Adam(model.parameters())
 
     # Training loop
@@ -138,14 +150,21 @@ def train_lstm(sequences, labels, patient, output_dir):
         f.write(f"Classification Report:\n{report}\n")
         f.write(f"Confusion Matrix:\n{confusion}\n")
 
+    print(f"PyTorch training and evaluation for patient {patient} complete.")
+
     return model, sequences
 
-def extract_feature_importance(model, gene_names, patient):
-    # Extract feature importance from LSTM weights
-    # For PyTorch LSTM, input-to-hidden weights are typically in .weight_ih_l0
-    # Shape: (4 * hidden_size, input_size)
-    # The four sections correspond to input gate, forget gate, cell gate, output gate.
-    # We are interested in the overall influence of each input feature.
+def extract_feature_importance(model, gene_names):
+    """
+    Extract feature importance from LSTM weights.
+
+    Args:
+         model: The trained LSTM on a single patient data.
+         gene_names: The list of gene names.
+
+    Returns:
+        All the features ranked by importance.
+    """
 
     # Get input-to-hidden weights from the first LSTM layer
     lstm_input_weights = model.lstm.weight_ih_l0.data.cpu().numpy()
@@ -159,11 +178,16 @@ def extract_feature_importance(model, gene_names, patient):
         "Importance": feature_importance_per_gene
     }).sort_values(by="Importance", ascending=False)
 
-    print(f"PyTorch training and evaluation for patient {patient} complete.")
-
     return feature_ranking
 
 def train_model_and_rank_features(raw_data_dir, output_root_dir):
+    """
+    Triggers the end-to-end worfklow.
+
+    Args:
+         raw_data_dir: The root directory where the raw data archives have been downloaded.
+         output_root_dir: The root output dir.
+    """
     # Organize files by patient
     processed_matrices_dir = raw_data_dir + "/processed_matrices_csv"
     output_dir = os.path.join(output_root_dir, 'lstm_bdm_analysisV2')
@@ -179,6 +203,8 @@ def train_model_and_rank_features(raw_data_dir, output_root_dir):
     # Run the analysis
     for patient, files in file_groups.items():
         sequences, labels, gene_names = process_single_patient_data(processed_matrices_dir, patient, files)
+        print(sequences.__class__)
+        print(sequences)
         model, sequences = train_lstm(sequences, labels, patient, 
                                                 output_dir)
         

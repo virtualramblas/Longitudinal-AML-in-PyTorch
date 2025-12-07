@@ -13,6 +13,19 @@ from transformer_model import PyTorchTransformerModel
 
 def train_transformer(sequences, labels, patient,
                         output_dir, device='cpu'):
+    """
+    Trains, tests and validate a Transformer model on a single patient data.
+
+    Args:
+         sequences: Combined DX, REL, REM into sequences (samples x timepoints).
+         labels: The list of labesl (for diagnosis, relapse and remission).
+         patient: The patiend id.
+         output_dir: The dictionary where to save the training metrics.
+         device: The device where to load model and data.
+    
+    Returns:
+        The trained model and a list of sequences (samples x timepoints).
+    """
     # Ensure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -156,6 +169,17 @@ def train_transformer(sequences, labels, patient,
     return model, sequences
 
 def rank_features_by_importance(model, sequences, gene_names):
+    """
+    Ranks feature by importance.
+
+    Args:
+         model: The trained Transformer on a single patient data.
+         sequences: Combined DX, REL, REM into sequences (samples x timepoints).
+         gene_names: The list of gene names.
+
+    Returns:
+        All the features ranked by importance.
+    """
     model.eval()
     with torch.no_grad(): 
         attention_layer_for_inference = model.multi_head_attention
@@ -172,6 +196,13 @@ def rank_features_by_importance(model, sequences, gene_names):
     return feature_ranking
 
 def train_model_and_rank_features(raw_data_dir, output_root_dir):
+    """
+    Triggers the end-to-end worfklow.
+
+    Args:
+         raw_data_dir: The root directory where the raw data archives have been downloaded.
+         output_root_dir: The root output dir.
+    """
     device = "cpu"
     if torch.cuda.is_available():
         device = "gpu"
