@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from data_preprocessing import process_single_patient_data
 from lstm_model import LSTMModel
 
-def train_lstm_and_extract_importance(sequences, labels, patient, output_dir):
+def train_lstm(sequences, labels, patient, output_dir):
     # Ensure labels are of type int (if they are not already)
     labels = labels.astype(int)
 
@@ -179,7 +179,7 @@ def train_model_and_rank_features(raw_data_dir, output_root_dir):
     # Run the analysis
     for patient, files in file_groups.items():
         sequences, labels, gene_names = process_single_patient_data(processed_matrices_dir, patient, files)
-        model, sequences = train_lstm_and_extract_importance(sequences, labels, patient, 
+        model, sequences = train_lstm(sequences, labels, patient, 
                                                 output_dir)
         
         feature_ranking = extract_feature_importance(model, gene_names, patient)
