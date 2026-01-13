@@ -5,3 +5,4 @@ scikit-learn==1.7.2
 pybdm==0.1.0
 matplotlib==3.10.7
 statsmodels==0.14.5
+seaborn==0.13.2
